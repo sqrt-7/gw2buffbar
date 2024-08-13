@@ -11,14 +11,9 @@ clear = true
 script = "cargo xwin build --target x86_64-pc-windows-msvc --release"
 clear = true
 
-[tasks.build-dev]
-linux_alias = "build-cross"
-script = "cargo build --target x86_64-pc-windows-msvc"
+[tasks.run-debug]
 clear = true
-
-[tasks.build-cross-dev]
-script = "cargo xwin build --target x86_64-pc-windows-msvc"
-clear = true
+script = "cargo xwin build --bin --target x86_64-pc-windows-msvc --release && wine ./target/x86_64-pc-windows-msvc/release/local.exe"
 
 [tasks.where]
 script = "echo [release] && echo ${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/release/${CARGO_MAKE_CRATE_NAME}.dll && echo [debug] && echo ${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/debug/${CARGO_MAKE_CRATE_NAME}.dll"

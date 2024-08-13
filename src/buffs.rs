@@ -1,5 +1,6 @@
-use crate::compat::{get_len, GetBuffsFnSig, DLL_GET_BUFFS};
-use libloading::Library;
+use crate::compat::{get_len, DLL_FUNC, DLL_LIB};
+use arc_util::ui::Ui;
+use arcdps::imgui::Condition;
 use once_cell::sync::Lazy;
 use std::{collections::HashMap, time::Instant};
 
@@ -21,68 +22,142 @@ static BUFF_MAP: Lazy<HashMap<u32, String>> = Lazy::new(|| {
     ])
 });
 
+#[derive(Clone)]
+pub enum BuffIcon {
+    CicleOutline {
+        radius: f32,
+        thickness: f32,
+        color: [f32; 4],
+    },
+}
+
+#[derive(Clone)]
+pub struct SingleBuffConfig {
+    buff_id: u32,
+    pos_x: f32,
+    pos_y: f32,
+    icon: BuffIcon,
+}
+
+impl SingleBuffConfig {
+    pub fn new(buff_id: u32, pos_x: f32, pos_y: f32, icon: BuffIcon) -> Self {
+        SingleBuffConfig {
+            buff_id,
+            pos_x,
+            pos_y,
+            icon,
+        }
+    }
+
+    pub fn draw(&self, ui: &Ui) {
+        match self.icon {
+            BuffIcon::CicleOutline {
+                radius,
+                thickness,
+                color,
+            } => self.draw_circle_outline(ui, radius, thickness, color),
+        }
+    }
+
+    fn draw_circle_outline(&self, ui: &Ui, radius: f32, thickness: f32, color: [f32; 4]) {
+        let px = self.pos_x + radius + thickness;
+        let py = self.pos_y + radius + thickness;
+        let win_width = radius * 2.0 + thickness * 2.0;
+        let win_height = radius * 2.0 + thickness * 2.0;
+
+        let win = arcdps::imgui::Window::new(self.buff_id.to_string())
+            .position([self.pos_x, self.pos_y], Condition::Always)
+            .size([win_width, win_height], Condition::Always)
+            .resizable(false)
+            .focus_on_appearing(false)
+            .no_nav()
+            .title_bar(false)
+            .draw_background(false)
+            .collapsible(false);
+
+        win.build(&ui, || {
+            let draw_list = ui.get_window_draw_list();
+            draw_list
+                .add_circle([px, py], radius, color)
+                .thickness(thickness)
+                .build();
+        });
+    }
+}
+
 pub struct BuffHandler {
+    is_visible: bool,
     last_process: Instant,
-    last_output: Vec<String>,
-    dll_library: Library,
+    last_output: Vec<SingleBuffConfig>,
+    config: HashMap<u32, SingleBuffConfig>,
 }
 
 impl BuffHandler {
-    pub fn new() -> Option<Self> {
-        let dll_filename = libloading::library_filename("getbuffs");
-        log::info!(target: "file", "dll file: {:?}", dll_filename);
-
-        let lib = unsafe { Library::new(dll_filename) };
-        if let Err(e) = lib {
-            log::info!(target: "file", "gw2buffbar init failed: {}", e);
-            return None;
-        }
-
-        let lib = lib.unwrap();
-
-        // Try DLL function
-        let getbuffs_fn = unsafe { lib.get::<GetBuffsFnSig>(DLL_GET_BUFFS.as_bytes()) };
-        if let Err(e) = getbuffs_fn {
-            log::info!(target: "file", "gw2buffbar init failed: {}", e);
-            return None;
-        }
-
-        Some(BuffHandler {
+    pub fn new() -> Self {
+        BuffHandler {
+            is_visible: false,
             last_process: Instant::now(),
             last_output: Vec::new(),
-            dll_library: lib,
-        })
+            config: HashMap::new(),
+        }
     }
 
-    pub fn getbuffs(&mut self) -> Result<Vec<String>, String> {
+    pub fn is_visible(&self) -> bool {
+        self.is_visible
+    }
+
+    pub fn add_buff(&mut self, config: SingleBuffConfig) {
+        self.config.insert(config.buff_id, config);
+    }
+
+    pub fn update_current_buffs(&mut self) {
+        if DLL_LIB.is_none() || DLL_FUNC.is_none() {
+            return;
+        }
+
         let elapsed = self.last_process.elapsed().as_millis();
         if elapsed < TICK {
-            return Ok(self.last_output.clone());
+            return;
         }
 
         self.last_process = Instant::now();
 
-        match unsafe {
-            self.dll_library
-                .get::<GetBuffsFnSig>(DLL_GET_BUFFS.as_bytes())
-        } {
-            Err(e) => {
-                return Err(e.to_string());
+        let func = DLL_FUNC.as_ref().unwrap();
+        let buffs = func();
+        let len = unsafe { get_len(buffs) };
+
+        let slice = unsafe { std::slice::from_raw_parts(buffs, len) };
+
+        self.last_output.clear();
+        for buff in slice.iter() {
+            if let Some(conf) = self.config.get(&(buff.id)) {
+                self.last_output.push((*conf).clone());
             }
-            Ok(func) => {
-                let buffs = func();
-                let len = unsafe { get_len(buffs) };
-                let mut new_vec = Vec::new();
-                unsafe {
-                    let slice = std::slice::from_raw_parts(buffs, len);
-                    for item in slice.iter() {
-                        if let Some(name) = BUFF_MAP.get(&(item.id)) {
-                            new_vec.push(format!("{}({})", *name, item.count));
-                        }
-                    }
-                }
-                self.last_output = new_vec;
-                Ok(self.last_output.clone())
+        }
+    }
+
+    pub fn render_arcdps_options_main(&mut self, ui: &arcdps::imgui::Ui) {
+        ui.checkbox("GW2BuffBar", &mut self.is_visible);
+    }
+
+    pub fn render_arcdps_options_tab(&self, ui: &arcdps::imgui::Ui) {
+        let colors = arcdps::exports::colors();
+        let grey = colors
+            .core(arcdps::exports::CoreColor::MediumGrey)
+            .unwrap_or(arc_util::colors::GREY);
+        ui.spacing();
+        ui.text_colored(grey, "blah blah");
+        ui.checkbox("I'm a checkbox", &mut true);
+
+        if ui.button("Test") {
+            log::info!(target: "both", "BUTTON_PRESS")
+        }
+    }
+
+    pub fn render_buffs(&self, ui: &arcdps::imgui::Ui) {
+        if self.is_visible {
+            for buff in self.last_output.iter() {
+                buff.draw(ui);
             }
         }
     }

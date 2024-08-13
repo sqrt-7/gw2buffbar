@@ -1,6 +1,42 @@
+use libloading::{Library, Symbol};
+use once_cell::sync::Lazy;
+
 const MAX_BUFFS: usize = 50;
 
 pub static DLL_GET_BUFFS: &str = "GetCurrentPlayerStackedBuffs";
+
+pub static DLL_LIB: Lazy<Option<Library>> = Lazy::new(|| {
+    let dll_filename = libloading::library_filename("getbuffs");
+    log::info!(target: "file", "dll file: {:?}", dll_filename);
+
+    let lib = unsafe { Library::new(dll_filename) };
+    if let Err(e) = lib {
+        log::info!(target: "file", "gw2buffbar init failed [1]: {}", e);
+        return None;
+    }
+
+    Some(lib.unwrap())
+});
+
+pub static DLL_FUNC: Lazy<Option<Symbol<GetBuffsFnSig>>> = Lazy::new(|| {
+    if DLL_LIB.is_some() {
+        let f = unsafe {
+            DLL_LIB
+                .as_ref()
+                .unwrap()
+                .get::<GetBuffsFnSig>(DLL_GET_BUFFS.as_bytes())
+        };
+
+        if let Err(e) = f {
+            log::info!(target: "file", "gw2buffbar init failed [2]: {}", e);
+            return None;
+        }
+
+        return Some(f.unwrap());
+    }
+
+    None
+});
 
 pub type GetBuffsFnSig = fn() -> *const MyBoons;
 
