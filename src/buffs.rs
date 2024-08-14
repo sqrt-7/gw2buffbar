@@ -95,23 +95,33 @@ pub enum BuffIcon {
         thickness: f32,
         color: RGBColor,
     },
+    TriangleUp {
+        side_length: f32,
+        color: RGBColor,
+    },
 }
 
 #[derive(Clone, Debug)]
 pub struct SingleBuffConfig {
     buff_id: u32,
-    pos_x: f32,
-    pos_y: f32,
+    window_x: f32,
+    window_y: f32,
     opt_title: String,
     icon: BuffIcon,
 }
 
 impl SingleBuffConfig {
-    pub fn new(buff_id: u32, pos_x: f32, pos_y: f32, opt_title: String, icon: BuffIcon) -> Self {
+    pub fn new(
+        buff_id: u32,
+        window_x: f32,
+        window_y: f32,
+        opt_title: String,
+        icon: BuffIcon,
+    ) -> Self {
         SingleBuffConfig {
             buff_id,
-            pos_x,
-            pos_y,
+            window_x,
+            window_y,
             opt_title,
             icon,
         }
@@ -124,12 +134,15 @@ impl SingleBuffConfig {
                 thickness,
                 color,
             } => self.draw_circle_outline(ui, radius, thickness, color),
+            BuffIcon::TriangleUp { side_length, color } => {
+                self.draw_triangle_up(ui, side_length, color)
+            }
         }
     }
 
     fn draw_circle_outline(&self, ui: &Ui, radius: f32, thickness: f32, color: RGBColor) {
-        let px = self.pos_x + radius + thickness;
-        let mut py = self.pos_y + radius + thickness;
+        let px = self.window_x + radius + thickness;
+        let mut py = self.window_y + radius + thickness;
         let win_width = radius * 2.0 + thickness * 2.0;
         let mut win_height = radius * 2.0 + thickness * 2.0;
 
@@ -144,7 +157,7 @@ impl SingleBuffConfig {
         }
 
         let win = arcdps::imgui::Window::new(title)
-            .position([self.pos_x, self.pos_y], Condition::Always)
+            .position([self.window_x, self.window_y], Condition::Always)
             .size([win_width, win_height], Condition::Always)
             .resizable(false)
             .focus_on_appearing(false)
@@ -158,6 +171,61 @@ impl SingleBuffConfig {
             draw_list
                 .add_circle([px, py], radius, color.to_imgui_color())
                 .thickness(thickness)
+                .build();
+        });
+    }
+
+    fn draw_triangle_up(&self, ui: &Ui, side_length: f32, color: RGBColor) {
+        /*
+               B
+
+           A       C
+        */
+
+        let thickness = 1.0;
+        let win_side = side_length + thickness * 2.0;
+
+        let mut tri_a = [
+            self.window_x + thickness + 2.0,
+            self.window_y + (win_side - thickness - 2.0),
+        ];
+        let mut tri_c = [
+            self.window_x + (win_side - thickness - 2.0),
+            self.window_y + (win_side - thickness - 2.0),
+        ];
+        let mut tri_b = [
+            tri_a[0] + ((tri_c[0] - tri_a[0]) / 2.0),
+            self.window_y + thickness + 2.0,
+        ];
+
+        let mut title = format!("{}", self.buff_id);
+        let mut show_title = false;
+        let mut win_sides = [win_side, win_side];
+
+        if !self.opt_title.is_empty() {
+            title = self.opt_title.clone();
+            show_title = true;
+            win_sides[1] += 22.0;
+            tri_a[1] += 22.0;
+            tri_b[1] += 22.0;
+            tri_c[1] += 22.0;
+        }
+
+        let win = arcdps::imgui::Window::new(title)
+            .position([self.window_x, self.window_y], Condition::Always)
+            .size(win_sides, Condition::Always)
+            .resizable(false)
+            .focus_on_appearing(false)
+            .no_nav()
+            .title_bar(show_title)
+            .draw_background(false)
+            .collapsible(false);
+
+        win.build(&ui, || {
+            let draw_list = ui.get_window_draw_list();
+            draw_list
+                .add_triangle(tri_a, tri_b, tri_c, color.to_imgui_color())
+                .filled(true)
                 .build();
         });
     }
@@ -178,6 +246,12 @@ impl TryFrom<&LocalConfigItem> for SingleBuffConfig {
                     thickness: thickness as f32,
                     color: color.try_into()?,
                 },
+                crate::config::LocalConfigItemIcon::TriangleUp { side_length, color } => {
+                    BuffIcon::TriangleUp {
+                        side_length: side_length as f32,
+                        color: color.try_into()?,
+                    }
+                }
             }
         };
 

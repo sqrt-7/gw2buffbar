@@ -3,7 +3,7 @@
         {
             "buff_id": 718,
             "window_pos": [200, 200],
-            "title": "bloop",
+            "title": "regen",
             "icon": {
                 "type": "circle_outline",
                 "config": {
@@ -16,7 +16,7 @@
         {
             "buff_id": 743,
             "window_pos": [500, 200],
-            "title": "hello",
+            "title": "aegis",
             "icon": {
                 "type": "circle_outline",
                 "config": {
@@ -25,6 +25,20 @@
                     "color": [154, 54, 255]
                 }
             }
+        },
+        {
+            "buff_id": 717,
+            "window_pos": [200, 400],
+            "title": "prot",
+            "icon": {
+                "type": "triangle_up",
+                "config": {
+                    "side_length": 40,
+                    "thickness": 10,
+                    "color": [51, 153, 255]
+                }
+            }
         }
+
     ]
 }

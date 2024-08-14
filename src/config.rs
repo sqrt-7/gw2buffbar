@@ -20,6 +20,8 @@ pub enum LocalConfigItemIcon {
         thickness: u32,
         color: [u32; 3],
     },
+    #[serde(rename = "triangle_up")]
+    TriangleUp { side_length: u32, color: [u32; 3] },
 }
 
 impl LocalConfig {
@@ -31,24 +33,3 @@ impl LocalConfig {
         loader.try_deserialize::<LocalConfig>()
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::buffs::SingleBuffConfig;
-
-//     use super::LocalConfig;
-
-//     #[test]
-//     fn load_from_file() -> Result<(), String> {
-//         match LocalConfig::new_from_file("gw2buffbar.json") {
-//             Err(e) => Err(format!("failed to load gw2buffbar.json (error: {})", e)),
-//             Ok(conf) => {
-//                 for item in conf.items.iter() {
-//                     let conv: SingleBuffConfig = item.try_into()?;
-//                     println!("config item: {:?}", conv);
-//                 }
-//                 Ok(())
-//             }
-//         }
-//     }
-// }
