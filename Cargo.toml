@@ -16,3 +16,5 @@ arcdps = { git = "https://github.com/Zerthox/arcdps-bindings", version = "0.15.0
 arc_util = { git = "https://github.com/zerthox/arcdps-utils", features = [
     "settings",
 ] }
+serde = { version = "1.0.207", features = ["derive"] }
+config = "0.14.0"

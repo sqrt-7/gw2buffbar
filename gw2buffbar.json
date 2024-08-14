@@ -1,0 +1,30 @@
+{
+    "items": [
+        {
+            "buff_id": 718,
+            "window_pos": [200, 200],
+            "title": "bloop",
+            "icon": {
+                "type": "circle_outline",
+                "config": {
+                    "radius": 20,
+                    "thickness": 10,
+                    "color": [0, 255, 0]
+                }
+            }
+        },
+        {
+            "buff_id": 743,
+            "window_pos": [500, 200],
+            "title": "hello",
+            "icon": {
+                "type": "circle_outline",
+                "config": {
+                    "radius": 20,
+                    "thickness": 10,
+                    "color": [154, 54, 255]
+                }
+            }
+        }
+    ]
+}

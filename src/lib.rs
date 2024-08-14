@@ -1,8 +1,10 @@
 mod buffs;
 mod compat;
+mod config;
 
-use buffs::{BuffHandler, BuffIcon, SingleBuffConfig};
+use buffs::{BuffHandler, SingleBuffConfig};
 use compat::{DLL_FUNC, DLL_LIB};
+use config::LocalConfig;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
@@ -19,44 +21,30 @@ arcdps::export!(
 );
 
 fn init() -> Result<(), String> {
-    log::info!(target: "file", "gw2buffbar init");
+    log::info!(target: "file", "init");
 
     if DLL_LIB.is_none() || DLL_FUNC.is_none() {
         return Err("couldn't grab DLL function".to_string());
     }
 
-    // todo
-    let regen = SingleBuffConfig::new(
-        718,
-        200.0,
-        200.0,
-        BuffIcon::CicleOutline {
-            radius: 20.0,
-            thickness: 10.0,
-            color: arc_util::colors::GREEN,
-        },
-    );
-
-    let aegis = SingleBuffConfig::new(
-        743,
-        500.0,
-        200.0,
-        BuffIcon::CicleOutline {
-            radius: 20.0,
-            thickness: 10.0,
-            color: [154.0 / 255.0, 54.0 / 255.0, 255.0 / 255.0, 1.0],
-        },
-    );
-
     let mut handler = BUFF_HANDLER.lock().unwrap();
-    handler.add_buff(regen);
-    handler.add_buff(aegis);
+
+    match LocalConfig::new_from_file("addons/arcdps/gw2buffbar.json") {
+        Err(e) => return Err(format!("failed to load gw2buffbar.json (error: {})", e)),
+        Ok(conf) => {
+            for item in conf.items.iter() {
+                let conv: SingleBuffConfig = item.try_into()?;
+                log::info!(target: "file", "config item: {:?}", conv);
+                handler.watch_buff(conv);
+            }
+        }
+    }
 
     Ok(())
 }
 
 fn release() {
-    log::info!(target: "file", "gw2buffbar: stopped");
+    log::info!(target: "file", "stopped");
 }
 
 fn options_windows(ui: &arc_util::ui::Ui, window_name: Option<&str>) -> bool {
@@ -73,8 +61,5 @@ fn options_end(ui: &arcdps::imgui::Ui) {
 
 fn imgui(imgui_ui: &arcdps::imgui::Ui, _not_loading_or_character_selection: bool) {
     let mut handler = BUFF_HANDLER.lock().unwrap();
-    if handler.is_visible() {
-        handler.update_current_buffs();
-        handler.render_buffs(imgui_ui);
-    }
+    handler.update_current_buffs(imgui_ui);
 }

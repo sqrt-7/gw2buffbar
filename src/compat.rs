@@ -11,7 +11,7 @@ pub static DLL_LIB: Lazy<Option<Library>> = Lazy::new(|| {
 
     let lib = unsafe { Library::new(dll_filename) };
     if let Err(e) = lib {
-        log::info!(target: "file", "gw2buffbar init failed [1]: {}", e);
+        log::info!(target: "file", "init failed [1]: {}", e);
         return None;
     }
 
@@ -28,7 +28,7 @@ pub static DLL_FUNC: Lazy<Option<Symbol<GetBuffsFnSig>>> = Lazy::new(|| {
         };
 
         if let Err(e) = f {
-            log::info!(target: "file", "gw2buffbar init failed [2]: {}", e);
+            log::info!(target: "file", "init failed [2]: {}", e);
             return None;
         }
 
