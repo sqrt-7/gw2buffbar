@@ -2,43 +2,82 @@
     "items": [
         {
             "buff_id": 718,
-            "window_pos": [200, 200],
-            "title": "regen",
+            "window_pos": [
+                200,
+                200
+            ],
             "icon": {
                 "type": "circle_outline",
                 "config": {
                     "radius": 20,
                     "thickness": 10,
-                    "color": [0, 255, 0]
+                    "color": [
+                        0,
+                        255,
+                        0
+                    ]
                 }
             }
         },
         {
             "buff_id": 743,
-            "window_pos": [500, 200],
+            "window_pos": [
+                500,
+                200
+            ],
             "title": "aegis",
             "icon": {
                 "type": "circle_outline",
                 "config": {
                     "radius": 20,
                     "thickness": 10,
-                    "color": [154, 54, 255]
+                    "color": [
+                        154,
+                        54,
+                        255
+                    ]
                 }
             }
         },
         {
             "buff_id": 717,
-            "window_pos": [200, 400],
-            "title": "prot",
+            "window_pos": [
+                200,
+                400
+            ],
             "icon": {
                 "type": "triangle_up",
                 "config": {
                     "side_length": 40,
                     "thickness": 10,
-                    "color": [51, 153, 255]
+                    "color": [
+                        51,
+                        153,
+                        255
+                    ]
+                }
+            }
+        },
+        {
+            "buff_id": 740,
+            "window_pos": [
+                600,
+                200
+            ],
+            "title": "might",
+            "show_stacks": true,
+            "icon": {
+                "type": "circle_outline",
+                "config": {
+                    "radius": 20,
+                    "thickness": 10,
+                    "color": [
+                        255,
+                        0,
+                        50
+                    ]
                 }
             }
         }
-
     ]
 }

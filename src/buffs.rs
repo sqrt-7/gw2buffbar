@@ -10,7 +10,6 @@ use std::{collections::HashMap, time::Instant};
 
 const TICK: u128 = 100;
 
-// #[derive(Clone, Copy, Debug, FromPrimitive)]
 // pub enum BuffID {
 //     Protection = 717,
 //     Regeneration = 718,
@@ -23,29 +22,6 @@ const TICK: u128 = 100;
 //     Stability = 1122,
 //     Quickness = 1187,
 //     Resistance = 26980,
-// }
-
-// // impl ToString for BuffID {
-// //     fn to_string(&self) -> String {
-// //         format!("{:?}", self)
-// //     }
-// // }
-
-// // impl Into<u32> for BuffID {
-// //     fn into(self) -> u32 {
-// //         self as u32
-// //     }
-// // }
-
-// impl TryFrom<u32> for BuffID {
-//     type Error = String;
-
-//     fn try_from(value: u32) -> Result<Self, Self::Error> {
-//         match num::FromPrimitive::from_u32(value) {
-//             Some(v) => Ok(v),
-//             None => Err(format!("unknown buff_id: {}", value)),
-//         }
-//     }
 // }
 
 #[derive(Clone, Copy, Debug)]
@@ -63,12 +39,6 @@ impl RGBColor {
             self.b as f32 / 255.0,
             1.0,
         ];
-    }
-}
-
-impl ToString for RGBColor {
-    fn to_string(&self) -> String {
-        format!("r:{},g:{},b:{}", self.r, self.g, self.b)
     }
 }
 
@@ -108,6 +78,8 @@ pub struct SingleBuffConfig {
     window_y: f32,
     opt_title: String,
     icon: BuffIcon,
+    active_stacks: i32,
+    show_stacks: bool,
 }
 
 impl SingleBuffConfig {
@@ -117,6 +89,7 @@ impl SingleBuffConfig {
         window_y: f32,
         opt_title: String,
         icon: BuffIcon,
+        show_stacks: bool,
     ) -> Self {
         SingleBuffConfig {
             buff_id,
@@ -124,6 +97,8 @@ impl SingleBuffConfig {
             window_y,
             opt_title,
             icon,
+            active_stacks: 0i32,
+            show_stacks,
         }
     }
 
@@ -140,31 +115,46 @@ impl SingleBuffConfig {
         }
     }
 
-    fn draw_circle_outline(&self, ui: &Ui, radius: f32, thickness: f32, color: RGBColor) {
-        let px = self.window_x + radius + thickness;
-        let mut py = self.window_y + radius + thickness;
-        let win_width = radius * 2.0 + thickness * 2.0;
-        let mut win_height = radius * 2.0 + thickness * 2.0;
-
-        let mut title = format!("{}", self.buff_id);
-        let mut show_title = false;
-
-        if self.opt_title != "" {
-            title = self.opt_title.clone();
-            show_title = true;
-            win_height += 20.0;
-            py += 20.0;
-        }
-
-        let win = arcdps::imgui::Window::new(title)
-            .position([self.window_x, self.window_y], Condition::Always)
-            .size([win_width, win_height], Condition::Always)
+    fn new_window(
+        &self,
+        title: String,
+        show_title: bool,
+        pos: [f32; 2],
+        size: [f32; 2],
+    ) -> arcdps::imgui::Window<String> {
+        arcdps::imgui::Window::new(title)
+            .position(pos, Condition::Always)
+            .size(size, Condition::Always)
             .resizable(false)
             .focus_on_appearing(false)
             .no_nav()
             .title_bar(show_title)
-            .draw_background(false)
-            .collapsible(false);
+            .draw_background(true)
+            .collapsible(false)
+    }
+
+    fn draw_circle_outline(&self, ui: &Ui, radius: f32, thickness: f32, color: RGBColor) {
+        let px = self.window_x + radius + thickness;
+        let mut py = self.window_y + radius + thickness;
+        let window_length = radius * 2.0 + thickness * 2.0;
+        let mut window_size = [window_length, window_length];
+
+        // Modify dimensions to fit the header
+        let mut title = format!("{}", self.buff_id);
+        let mut show_title = false;
+        if self.opt_title != "" {
+            title = self.opt_title.clone();
+            show_title = true;
+            window_size[1] += 20.0;
+            py += 20.0;
+        }
+
+        let win = self.new_window(
+            title,
+            show_title,
+            [self.window_x, self.window_y],
+            window_size,
+        );
 
         win.build(&ui, || {
             let draw_list = ui.get_window_draw_list();
@@ -172,6 +162,16 @@ impl SingleBuffConfig {
                 .add_circle([px, py], radius, color.to_imgui_color())
                 .thickness(thickness)
                 .build();
+
+            if self.show_stacks {
+                let text_size = ui.calc_text_size(self.active_stacks.to_string());
+                let text_pos = [px - text_size[0] / 2.0, py - text_size[1] / 2.0];
+                draw_list.add_text(
+                    text_pos,
+                    [1.0, 1.0, 1.0, 1.0],
+                    self.active_stacks.to_string(),
+                )
+            }
         });
     }
 
@@ -183,43 +183,41 @@ impl SingleBuffConfig {
         */
 
         let thickness = 1.0;
-        let win_side = side_length + thickness * 2.0;
+        let window_length = side_length + thickness * 2.0;
 
         let mut tri_a = [
             self.window_x + thickness + 2.0,
-            self.window_y + (win_side - thickness - 2.0),
+            self.window_y + (window_length - thickness - 2.0),
         ];
         let mut tri_c = [
-            self.window_x + (win_side - thickness - 2.0),
-            self.window_y + (win_side - thickness - 2.0),
+            self.window_x + (window_length - thickness - 2.0),
+            self.window_y + (window_length - thickness - 2.0),
         ];
         let mut tri_b = [
             tri_a[0] + ((tri_c[0] - tri_a[0]) / 2.0),
             self.window_y + thickness + 2.0,
         ];
 
+        let mut window_size = [window_length, window_length];
+
+        // Modify dimensions to fit the header
         let mut title = format!("{}", self.buff_id);
         let mut show_title = false;
-        let mut win_sides = [win_side, win_side];
-
         if !self.opt_title.is_empty() {
             title = self.opt_title.clone();
             show_title = true;
-            win_sides[1] += 22.0;
+            window_size[1] += 22.0;
             tri_a[1] += 22.0;
             tri_b[1] += 22.0;
             tri_c[1] += 22.0;
         }
 
-        let win = arcdps::imgui::Window::new(title)
-            .position([self.window_x, self.window_y], Condition::Always)
-            .size(win_sides, Condition::Always)
-            .resizable(false)
-            .focus_on_appearing(false)
-            .no_nav()
-            .title_bar(show_title)
-            .draw_background(false)
-            .collapsible(false);
+        let win = self.new_window(
+            title,
+            show_title,
+            [self.window_x, self.window_y],
+            window_size,
+        );
 
         win.build(&ui, || {
             let draw_list = ui.get_window_draw_list();
@@ -261,6 +259,7 @@ impl TryFrom<&LocalConfigItem> for SingleBuffConfig {
             value.window_pos[1],
             value.title.clone(),
             icon,
+            value.show_stacks,
         ))
     }
 }
@@ -279,6 +278,19 @@ impl BuffHandler {
             last_process: Instant::now(),
             last_output: Vec::new(),
             registry: HashMap::new(),
+        }
+    }
+
+    pub fn show_mouse(&self, ui: &arcdps::imgui::Ui) {
+        if ui.io().mouse_down[0] == true
+            || ui.io().mouse_down[1] == true
+            || ui.io().mouse_down[2] == true
+        {
+            ui.get_foreground_draw_list()
+                .add_circle(ui.io().mouse_pos, 30.0, [1.0, 0.0, 0.4, 1.0])
+                .thickness(10.0)
+                .filled(false)
+                .build();
         }
     }
 
@@ -309,7 +321,9 @@ impl BuffHandler {
             self.last_output.clear();
             for buff in slice.iter() {
                 if let Some(conf) = self.registry.get(&(buff.id)) {
-                    self.last_output.push((*conf).clone());
+                    let mut x = (*conf).clone();
+                    x.active_stacks = buff.count;
+                    self.last_output.push(x);
                 }
             }
 

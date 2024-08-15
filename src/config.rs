@@ -7,8 +7,13 @@ pub struct LocalConfig {
 pub struct LocalConfigItem {
     pub buff_id: u32,
     pub window_pos: [f32; 2],
-    pub title: String,
     pub icon: LocalConfigItemIcon,
+
+    // Optional fields
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub show_stacks: bool,
 }
 
 #[derive(Clone, serde::Deserialize)]
