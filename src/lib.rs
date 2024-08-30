@@ -61,6 +61,5 @@ fn options_end(ui: &arcdps::imgui::Ui) {
 
 fn imgui(imgui_ui: &arcdps::imgui::Ui, _not_loading_or_character_selection: bool) {
     let mut handler = BUFF_HANDLER.lock().unwrap();
-    handler.show_mouse(imgui_ui);
     handler.update_current_buffs(imgui_ui);
 }

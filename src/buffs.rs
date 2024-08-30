@@ -281,18 +281,18 @@ impl BuffHandler {
         }
     }
 
-    pub fn show_mouse(&self, ui: &arcdps::imgui::Ui) {
-        if ui.io().mouse_down[0] == true
-            || ui.io().mouse_down[1] == true
-            || ui.io().mouse_down[2] == true
-        {
-            ui.get_foreground_draw_list()
-                .add_circle(ui.io().mouse_pos, 30.0, [1.0, 0.0, 0.4, 1.0])
-                .thickness(10.0)
-                .filled(false)
-                .build();
-        }
-    }
+    // pub fn show_mouse(&self, ui: &arcdps::imgui::Ui) {
+    //     if ui.io().mouse_down[0] == true
+    //         || ui.io().mouse_down[1] == true
+    //         || ui.io().mouse_down[2] == true
+    //     {
+    //         ui.get_foreground_draw_list()
+    //             .add_circle(ui.io().mouse_pos, 30.0, [1.0, 0.0, 0.4, 1.0])
+    //             .thickness(10.0)
+    //             .filled(false)
+    //             .build();
+    //     }
+    // }
 
     pub fn watch_buff(&mut self, config: SingleBuffConfig) {
         self.registry.insert(config.buff_id.into(), config);
